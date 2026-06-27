@@ -41,8 +41,9 @@ export class RoomsService {
       );
     }
 
+    const { rentPerBed, ...roomFields } = createRoomDto;
     const room = this.roomRepository.create({
-      ...createRoomDto,
+      ...roomFields,
       type: roomType,
     });
 
@@ -58,7 +59,7 @@ export class RoomsService {
         const bed = queryRunner.manager.create(Bed, {
           roomId: savedRoom.id,
           bedNumber: `${savedRoom.roomNumber}-B${i}`,
-          rent: '0',
+          rent: rentPerBed ? String(rentPerBed * 100) : '0',
           status: BedStatus.VACANT,
         });
         beds.push(bed);
@@ -160,10 +161,11 @@ export class RoomsService {
   }
 
   async update(id: string, organisationId: string, updateRoomDto: UpdateRoomDto) {
+    const { rentPerBed, ...roomData } = updateRoomDto;
     const room = await this.findOne(id, organisationId);
-    if (updateRoomDto.propertyId) {
+    if (roomData.propertyId) {
       const property = await this.propertyRepository.findOne({
-        where: { id: updateRoomDto.propertyId },
+        where: { id: roomData.propertyId },
       });
       if (!property || property.organisationId !== organisationId) {
         throw new ForbiddenException('Invalid property or access denied');
@@ -171,8 +173,8 @@ export class RoomsService {
     }
 
     // Validate capacity vs room type (same rule as create)
-    const roomType = updateRoomDto.type || room.type;
-    const newCapacity = updateRoomDto.capacity ?? room.capacity;
+    const roomType = roomData.type || room.type;
+    const newCapacity = roomData.capacity ?? room.capacity;
     const typeCapacityMap: Record<RoomType, number | null> = {
       [RoomType.SINGLE]: 1,
       [RoomType.DOUBLE]: 2,
@@ -187,12 +189,12 @@ export class RoomsService {
     }
 
     // Sync beds if capacity is being updated
-    if (updateRoomDto.capacity !== undefined && updateRoomDto.capacity !== room.capacity) {
+    if (roomData.capacity !== undefined && roomData.capacity !== room.capacity) {
       const existingBeds = room.beds || [];
-      if (updateRoomDto.capacity > existingBeds.length) {
+      if (roomData.capacity > existingBeds.length) {
         // Create new beds
         const newBeds: Bed[] = [];
-        for (let i = existingBeds.length + 1; i <= updateRoomDto.capacity; i++) {
+        for (let i = existingBeds.length + 1; i <= roomData.capacity; i++) {
           const bed = this.bedRepository.create({
             roomId: id,
             bedNumber: `${room.roomNumber}-B${i}`,
@@ -202,9 +204,9 @@ export class RoomsService {
           newBeds.push(bed);
         }
         await this.bedRepository.save(newBeds);
-      } else if (updateRoomDto.capacity < existingBeds.length) {
+      } else if (roomData.capacity < existingBeds.length) {
         // Check if any beds beyond the new capacity are occupied
-        const bedsToRemove = existingBeds.slice(updateRoomDto.capacity);
+        const bedsToRemove = existingBeds.slice(roomData.capacity);
         const occupiedBeds = bedsToRemove.filter((b) => b.status === BedStatus.OCCUPIED);
         if (occupiedBeds.length > 0) {
           throw new BadRequestException(
@@ -218,7 +220,10 @@ export class RoomsService {
       }
     }
 
-    await this.roomRepository.update(id, updateRoomDto);
+    await this.roomRepository.update(id, roomData);
+    if (rentPerBed !== undefined) {
+      await this.bedRepository.update({ roomId: id }, { rent: String(rentPerBed * 100) });
+    }
     return this.findOne(id, organisationId);
   }
 

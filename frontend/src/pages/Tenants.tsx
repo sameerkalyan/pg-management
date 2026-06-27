@@ -197,9 +197,7 @@ const Tenants = () => {
   const handleFileUpload = async (file: File, _type: 'photo' | 'idProof'): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await api.post('/files/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const res = await api.post('/files/upload', formData);
     return res.data?.url || '';
   };
 
@@ -239,6 +237,13 @@ const Tenants = () => {
         securityDeposit: form.securityDeposit ? parseFloat(form.securityDeposit) : undefined,
         checkInDate: form.checkInDate || new Date().toISOString().split('T')[0],
       };
+      // Remove empty strings for optional fields — class-validator @IsOptional
+      // only skips validation for undefined/null, not empty strings
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === '' && key !== 'firstName' && key !== 'phoneNumber' && key !== 'bedId' && key !== 'checkInDate') {
+          delete payload[key];
+        }
+      });
       if (editing) {
         await api.put(`/tenants/${editing.id}`, payload);
         if (photoUrl && photoUrl !== editing.photoUrl) {
@@ -484,8 +489,11 @@ const Tenants = () => {
                   <input
                     type="text"
                     required
+                    maxLength={10}
+                    pattern="\d{10}"
+                    placeholder="10 digits only"
                     value={form.phoneNumber}
-                    onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                    onChange={(e) => setForm({ ...form, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -531,7 +539,7 @@ const Tenants = () => {
                     {vacantBeds.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.bedNumber} (Room {b.roomNumber}, Floor {b.floor})
-                        {b.rent ? ` - ₹${b.rent}` : ''}
+                        {b.rent ? ` - ₹${(Number(b.rent) / 100).toLocaleString()}/mo` : ''}
                       </option>
                     ))}
                   </select>
@@ -576,8 +584,11 @@ const Tenants = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Emergency Contact Phone</label>
                   <input
                     type="text"
+                    maxLength={10}
+                    pattern="\d{10}"
+                    placeholder="10 digits only"
                     value={form.emergencyContactPhone}
-                    onChange={(e) => setForm({ ...form, emergencyContactPhone: e.target.value })}
+                    onChange={(e) => setForm({ ...form, emergencyContactPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>

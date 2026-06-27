@@ -32,12 +32,12 @@ export class CreateTenantDto {
   lastName?: string;
 
   @ApiProperty({
-    description: 'Contact phone number of the tenant',
-    example: '+91-9876543210',
+    description: 'Contact phone number of the tenant (exactly 10 digits)',
+    example: '9876543210',
   })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[+]?[\d\s-()]+$/, { message: 'Invalid phone number format' })
+  @Matches(/^\d{10}$/, { message: 'Phone number must be exactly 10 digits' })
   phoneNumber: string;
 
   @ApiProperty({
@@ -93,13 +93,13 @@ export class CreateTenantDto {
   emergencyContactName?: string;
 
   @ApiProperty({
-    description: 'Phone number of emergency contact person',
-    example: '+91-9876543211',
+    description: 'Phone number of emergency contact person (exactly 10 digits)',
+    example: '9876543211',
     required: false,
   })
   @IsString()
   @IsOptional()
-  @Matches(/^[+]?[\d\s-()]+$/, { message: 'Invalid phone number format' })
+  @Matches(/^\d{10}$/, { message: 'Phone number must be exactly 10 digits' })
   emergencyContactPhone?: string;
 
   @ApiProperty({

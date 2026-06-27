@@ -25,13 +25,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const isDev = process.env.NODE_ENV === 'development';
 
-    this.logger.error({
-      message: `${request.method} ${request.url} failed`,
-      statusCode: status,
-      requestId: request.headers['x-request-id'],
-      error: exception instanceof Error ? exception.message : 'Unknown error',
-      ...(isDev && exception instanceof Error ? { stack: exception.stack } : {}),
-    });
+    this.logger.error(
+      `${request.method} ${request.url} failed - status: ${status} - ` +
+      `error: ${exception instanceof Error ? exception.message : 'Unknown error'} - ` +
+      `details: ${JSON.stringify(typeof message === 'object' ? (message as any).message : message)}` +
+      (isDev && exception instanceof Error ? ` - stack: ${exception.stack}` : ''),
+    );
 
     response.status(status).json({
       statusCode: status,

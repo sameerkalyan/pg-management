@@ -45,4 +45,10 @@ export class CreateRoomDto {
   @IsString({ each: true })
   @IsOptional()
   amenities?: string[];
+
+  @ApiProperty({ description: 'Monthly rent per bed in rupees', example: 5000, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  rentPerBed?: number;
 }

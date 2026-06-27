@@ -10,7 +10,7 @@ interface Bed {
   id: string;
   roomId: string;
   bedNumber: string;
-  rent: number;
+  rent?: string | number;
   status: 'VACANT' | 'OCCUPIED' | 'MAINTENANCE' | 'RESERVED';
 }
 
@@ -48,6 +48,7 @@ const Rooms = () => {
     floor: '1',
     type: 'SINGLE' as Room['type'],
     capacity: '1',
+    rentPerBed: '',
     status: 'VACANT' as Room['status'],
     description: '',
   });
@@ -107,6 +108,7 @@ const Rooms = () => {
       floor: '1',
       type: 'SINGLE',
       capacity: '1',
+      rentPerBed: '',
       status: 'VACANT',
       description: '',
     });
@@ -121,6 +123,7 @@ const Rooms = () => {
       floor: room.floor.toString(),
       type: room.type,
       capacity: room.capacity.toString(),
+      rentPerBed: room.beds?.[0]?.rent ? String(parseFloat(String(room.beds[0].rent)) / 100) : '',
       status: room.status,
       description: room.description || '',
     });
@@ -130,11 +133,13 @@ const Rooms = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = {
+      const payload: any = {
         ...form,
         floor: parseInt(form.floor, 10),
         capacity: parseInt(form.capacity, 10),
       };
+      if (form.rentPerBed) payload.rentPerBed = parseFloat(form.rentPerBed);
+      else delete payload.rentPerBed;
       if (editing) {
         await api.put(`/rooms/${editing.id}`, payload);
         setSuccess('Room updated');
@@ -291,6 +296,7 @@ const Rooms = () => {
                                 {r.beds.map((bed) => (
                                   <div key={bed.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm">
                                     <span className="text-sm font-medium">{bed.bedNumber}</span>
+                                    <span className="text-xs text-gray-500">₹{bed.rent ? (parseFloat(String(bed.rent)) / 100).toLocaleString() : 0}/mo</span>
                                     <span className={`text-xs px-2 py-0.5 rounded ${getBedStatusColor(bed.status)}`}>
                                       {bed.status}
                                     </span>
@@ -348,7 +354,18 @@ const Rooms = () => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rent Per Bed (₹/month)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 5000"
+                    value={form.rentPerBed}
+                    onChange={(e) => setForm({ ...form, rentPerBed: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
                   <select
