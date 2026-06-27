@@ -40,7 +40,7 @@ interface Stats {
 }
 
 const STATUS_OPTIONS = ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'];
-const METHOD_OPTIONS = ['RAZORPAY', 'CASH', 'BANK_TRANSFER', 'UPI', 'CHEQUE', 'RANDOMPAY'];
+const METHOD_OPTIONS = ['RAZORPAY', 'CASH', 'BANK_TRANSFER', 'UPI', 'CHEQUE'];
 
 const Payments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -163,7 +163,7 @@ const Payments = () => {
     setForm({
       ...form,
       invoiceId,
-      amountPaise: inv ? String(inv.amountPaise) : form.amountPaise,
+      amountPaise: inv ? String(inv.amountPaise / 100) : form.amountPaise,
     });
   };
 
@@ -174,7 +174,7 @@ const Payments = () => {
 
     const payload: any = {
       invoiceId: form.invoiceId,
-      amountPaise: parseInt(form.amountPaise),
+      amountPaise: Math.round(parseFloat(form.amountPaise) * 100),
       method: form.method,
     };
     if (form.transactionId) payload.transactionId = form.transactionId;
@@ -421,12 +421,13 @@ const Payments = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount (paise) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹) *</label>
                   <input
                     type="number"
                     required
                     min="1"
-                    placeholder="Amount in paise"
+                    step="0.01"
+                    placeholder="Amount in rupees"
                     value={form.amountPaise}
                     onChange={(e) => setForm({ ...form, amountPaise: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"

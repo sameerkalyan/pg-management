@@ -24,6 +24,14 @@ interface Tenant {
   roomNumber?: string;
 }
 
+interface User {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  role: string;
+}
+
 interface Meta {
   total: number;
   page: number;
@@ -53,6 +61,7 @@ const Complaints = () => {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -117,13 +126,23 @@ const Complaints = () => {
     }
   }, []);
 
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await api.get('/users');
+      setUsers(res.data?.data || res.data || []);
+    } catch {
+      // users list optional
+    }
+  }, []);
+
   useEffect(() => {
     fetchComplaints();
   }, [fetchComplaints]);
 
   useEffect(() => {
     fetchTenants();
-  }, [fetchTenants]);
+    fetchUsers();
+  }, [fetchTenants, fetchUsers]);
 
   const resetCreateForm = () => {
     setCreateForm({ tenantId: '', title: '', description: '', priority: 'MEDIUM', category: 'MAINTENANCE' });
@@ -306,7 +325,10 @@ const Complaints = () => {
                       </div>
                       <p className="text-sm text-gray-600">
                         {c.tenant ? `${c.tenant.firstName} ${c.tenant.lastName || ''}` : 'Unknown tenant'}
-                        {c.assignedTo && ` · Assigned: ${c.assignedTo.slice(0, 8)}...`}
+                        {c.assignedTo && (() => {
+                          const u = users.find((u) => u.id === c.assignedTo);
+                          return ` · Assigned: ${u ? (u.firstName || u.email) : c.assignedTo.slice(0, 8) + '...'}`;
+                        })()}
                       </p>
                     </div>
                     <span className="text-xs text-gray-500">
@@ -502,14 +524,19 @@ const Complaints = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assign To (User ID)</label>
-                <input
-                  type="text"
-                  placeholder="User UUID to assign (clear to unassign)"
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
+                <select
                   value={updateForm.assignedTo}
                   onChange={(e) => setUpdateForm({ ...updateForm, assignedTo: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
+                >
+                  <option value="">Unassigned</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.firstName ? `${u.firstName} ${u.lastName || ''}` : u.email} ({u.role})
+                    </option>
+                  ))}
+                </select>
                 {selectedComplaint.status === 'OPEN' && updateForm.assignedTo && updateForm.assignedTo !== selectedComplaint.assignedTo && (
                   <p className="text-xs text-blue-600 mt-1">Status will auto-change to IN_PROGRESS</p>
                 )}

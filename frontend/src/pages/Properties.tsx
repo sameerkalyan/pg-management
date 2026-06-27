@@ -59,6 +59,7 @@ const Properties = () => {
     totalFloors: '',
     amenities: [] as string[],
     description: '',
+    status: 'ACTIVE' as Property['status'],
   });
 
   useEffect(() => {
@@ -110,6 +111,7 @@ const Properties = () => {
       totalFloors: '',
       amenities: [],
       description: '',
+      status: 'ACTIVE',
     });
     setShowModal(true);
   };
@@ -125,6 +127,7 @@ const Properties = () => {
       totalFloors: property.totalFloors?.toString() || '',
       amenities: property.amenities || [],
       description: property.description || '',
+      status: property.status,
     });
     setShowModal(true);
   };
@@ -132,10 +135,17 @@ const Properties = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = {
-        ...form,
+      const payload: any = {
+        name: form.name,
+        address: form.address,
+        status: form.status,
+        amenities: form.amenities,
         totalFloors: form.totalFloors ? parseInt(form.totalFloors, 10) : undefined,
       };
+      if (form.city) payload.city = form.city;
+      if (form.state) payload.state = form.state;
+      if (form.pincode) payload.pincode = form.pincode;
+      if (form.description) payload.description = form.description;
       if (editing) {
         await api.put(`/properties/${editing.id}`, payload);
         setSuccess('Property updated');
@@ -394,6 +404,18 @@ const Properties = () => {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value as Property['status'] })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                  <option value="MAINTENANCE">Maintenance</option>
+                </select>
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button
